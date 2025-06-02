@@ -1,4 +1,4 @@
-package src.br.com.controleestoque.model;
+package br.com.controleestoque.model;
 
 public class Produto {
     private int id;

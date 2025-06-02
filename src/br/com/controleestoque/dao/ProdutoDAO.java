@@ -1,4 +1,5 @@
-package src.br.com.controleestoque.dao;
+package br.com.controleestoque.dao;
+
 import br.com.controleestoque.model.Produto;
 import br.com.controleestoque.model.Categoria;
 import java.sql.*;
@@ -6,10 +7,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProdutoDAO {
+
     public void inserir(Produto produto) throws SQLException {
         String sql = "INSERT INTO produto (nome, preco_unitario, unidade, quantidade_estoque, quantidade_minima, quantidade_maxima, categoria_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = Conexao.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, produto.getNome());
             stmt.setDouble(2, produto.getPrecoUnitario());
             stmt.setString(3, produto.getUnidade());
@@ -17,7 +19,13 @@ public class ProdutoDAO {
             stmt.setInt(5, produto.getQuantidadeMinima());
             stmt.setInt(6, produto.getQuantidadeMaxima());
             stmt.setInt(7, produto.getCategoria().getId());
-            stmt.execute();
+            stmt.executeUpdate();
+
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    produto.setId(rs.getInt(1));
+                }
+            }
         }
     }
 
@@ -34,6 +42,15 @@ public class ProdutoDAO {
             stmt.setInt(7, produto.getCategoria().getId());
             stmt.setInt(8, produto.getId());
             stmt.executeUpdate();
+        }
+    }
+
+    // Método salvar para inserir ou atualizar conforme id
+    public void salvar(Produto produto) throws SQLException {
+        if (produto.getId() == 0) {
+            inserir(produto);
+        } else {
+            atualizar(produto);
         }
     }
 
@@ -61,12 +78,12 @@ public class ProdutoDAO {
                 p.setQuantidadeEstoque(rs.getInt("quantidade_estoque"));
                 p.setQuantidadeMinima(rs.getInt("quantidade_minima"));
                 p.setQuantidadeMaxima(rs.getInt("quantidade_maxima"));
-                
+
                 Categoria c = new Categoria();
                 c.setId(rs.getInt("categoria_id"));
                 c.setNome(rs.getString("categoria_nome"));
                 p.setCategoria(c);
-                
+
                 produtos.add(p);
             }
         }
