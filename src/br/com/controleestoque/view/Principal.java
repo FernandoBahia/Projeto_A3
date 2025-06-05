@@ -47,19 +47,34 @@ public class Principal extends JFrame {
         JButton btnRelatorios = new JButton("Relatórios");
         btnRelatorios.addActionListener(e -> mostrarRelatorios());
 
+        JButton btnExcluirProduto = new JButton("Excluir Produto");
+        btnExcluirProduto.addActionListener(e -> excluirProduto());
+
         painelBotoes.add(btnProdutos);
         painelBotoes.add(btnCategorias);
         painelBotoes.add(btnRelatorios);
+        painelBotoes.add(btnExcluirProduto);
 
-        // Criar tabelas
-        modelProdutos = new DefaultTableModel(new Object[]{"Nome", "Preço", "Unidade", "Categoria"}, 0);
+        // Tabela de produtos (com ID oculto na coluna 0)
+        modelProdutos = new DefaultTableModel(new Object[]{"ID", "Nome", "Preço", "Unidade", "Categoria"}, 0) {
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
         tabelaProdutos = new JTable(modelProdutos);
-        tabelaProdutos.getColumnModel().getColumn(1).setCellRenderer(new CurrencyRenderer());
+        tabelaProdutos.getColumnModel().getColumn(2).setCellRenderer(new CurrencyRenderer());
+        tabelaProdutos.getColumnModel().getColumn(0).setMinWidth(0);
+        tabelaProdutos.getColumnModel().getColumn(0).setMaxWidth(0);
 
-        modelCategorias = new DefaultTableModel(new Object[]{"Nome", "Tamanho", "Embalagem"}, 0);
+        // Tabela de categorias
+        modelCategorias = new DefaultTableModel(new Object[]{"Nome", "Tamanho", "Embalagem"}, 0) {
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
         tabelaCategorias = new JTable(modelCategorias);
 
-        // Painel principal com abas para Produtos e Categorias
+        // Painel principal com abas
         JTabbedPane abas = new JTabbedPane();
         abas.addTab("Produtos", new JScrollPane(tabelaProdutos));
         abas.addTab("Categorias", new JScrollPane(tabelaCategorias));
@@ -68,15 +83,15 @@ public class Principal extends JFrame {
         add(abas, BorderLayout.CENTER);
     }
 
-    // Método chamado pelo FormProduto para atualizar tabela na tela principal
     public void atualizarTabelaProdutos() {
         try {
             List<Produto> produtos = produtoDAO.listar();
             modelProdutos.setRowCount(0);
             for (Produto p : produtos) {
                 modelProdutos.addRow(new Object[]{
+                    p.getId(),
                     p.getNome(),
-                    NumberFormat.getCurrencyInstance().format(p.getPrecoUnitario()),
+                    p.getPrecoUnitario(),
                     p.getUnidade(),
                     p.getCategoria().getNome()
                 });
@@ -86,7 +101,6 @@ public class Principal extends JFrame {
         }
     }
 
-    // Método chamado pelo FormCategoria para atualizar tabela na tela principal
     public void atualizarTabelaCategorias() {
         try {
             List<Categoria> categorias = categoriaDAO.listar();
@@ -113,10 +127,37 @@ public class Principal extends JFrame {
         form.setVisible(true);
     }
 
-    // Aqui está o método para abrir o formulário de relatório
     private void mostrarRelatorios() {
         FormRelatorio formRelatorio = new FormRelatorio();
         formRelatorio.setVisible(true);
+    }
+
+    private void excluirProduto() {
+        int linhaSelecionada = tabelaProdutos.getSelectedRow();
+        if (linhaSelecionada == -1) {
+            JOptionPane.showMessageDialog(this, "Selecione um produto para excluir.");
+            return;
+        }
+
+        String nomeProduto = (String) tabelaProdutos.getValueAt(linhaSelecionada, 1);
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Deseja realmente excluir o produto \"" + nomeProduto + "\"?",
+                "Confirmação",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            int idProduto = (int) tabelaProdutos.getValueAt(linhaSelecionada, 0);
+            try {
+                produtoDAO.excluir(idProduto);
+                atualizarTabelaProdutos();
+                JOptionPane.showMessageDialog(this, "Produto excluído com sucesso.");
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Erro ao excluir produto: " + e.getMessage(),
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     static class CurrencyRenderer extends DefaultTableCellRenderer {
