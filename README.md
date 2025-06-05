@@ -1,4 +1,4 @@
-# Projeto_A3
+# Projeto_A3 - Controle de Estoque Java e MySQL
 Repositório voltado para o projeto A3 da faculdade -
 
 #Para compliar o projeto 
